@@ -21,11 +21,17 @@ jobs:
       val: ${{ steps.plan.outputs.val }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Install cargo-dist
         run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/latest/download/cargo-dist-installer.sh | sh
       - id: plan
         run: |
-          cargo dist plan --output-format=json > dist-manifest.json
+          TAG="${{ github.ref_name }}"
+          if [ -z "$TAG" ] || [[ "$TAG" == *"main"* ]]; then
+            TAG="v$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)"
+          fi
+          cargo dist plan --tag="$TAG" --output-format=json > dist-manifest.json
           echo "val=$(cat dist-manifest.json | tr -d '\n')" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
@@ -54,6 +60,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -65,7 +73,12 @@ jobs:
         run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/latest/download/cargo-dist-installer.sh | sh
       - name: Build binary with cargo-dist
         shell: bash
-        run: cargo dist build --target ${{ matrix.target }} --output-format=json
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [ -z "$TAG" ] || [[ "$TAG" == *"main"* ]]; then
+            TAG="v$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)"
+          fi
+          cargo dist build --tag="$TAG" --target ${{ matrix.target }} --output-format=json
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts-${{ matrix.target }}
@@ -77,6 +90,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -105,6 +120,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20

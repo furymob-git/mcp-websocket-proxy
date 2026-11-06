@@ -34,7 +34,10 @@ codegen-units = 1
 panic = "abort"
 strip = true
 
-[package.metadata.dist]
+[workspace]
+members = ["."]
+
+[workspace.metadata.dist]
 cargo-dist-version = "0.28.0"
 ci = "github"
 installers = ["shell", "powershell", "npm"]
