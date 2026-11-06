@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/eliot/mcp-websocket-proxy/discussions
+    about: Ask questions, share architectures, or discuss ideas with the community.

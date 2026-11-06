@@ -1,0 +1,56 @@
+name: Create Release Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to tag (e.g. 0.1.0)'
+        required: true
+        type: string
+      message:
+        description: 'Optional release tag annotation message'
+        required: false
+        default: 'Release'
+        type: string
+
+jobs:
+  tag:
+    name: Create & Push Tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate Version Format
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "::error::Invalid SemVer version: $VERSION"
+            exit 1
+          fi
+          echo "Validated version: $VERSION"
+
+      - name: Check Cargo.toml Version
+        run: |
+          CARGO_VER=$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)
+          TARGET_VER="${{ github.event.inputs.version }}"
+          if [ "$CARGO_VER" != "$TARGET_VER" ]; then
+            echo "::warning::Cargo.toml version ($CARGO_VER) does not match requested tag ($TARGET_VER). Updating Cargo.toml and packages/npm/package.json..."
+            sed -i "s/^version = \".*\"/version = \"$TARGET_VER\"/" Cargo.toml
+            sed -i "s/\"version\": \".*\"/\"version\": \"$TARGET_VER\"/" packages/npm/package.json
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add Cargo.toml packages/npm/package.json
+            git commit -m "chore(release): bump version to $TARGET_VER"
+            git push origin main
+          fi
+
+      - name: Create and Push Git Tag
+        run: |
+          TAG="v${{ github.event.inputs.version }}"
+          echo "Tagging as $TAG"
+          git tag -a "$TAG" -m "${{ github.event.inputs.message }} $TAG"
+          git push origin "$TAG"

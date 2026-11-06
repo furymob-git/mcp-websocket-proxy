@@ -1,13 +1,14 @@
-# Automated release workflow powered by cargo-dist
 name: Release
 
 permissions:
   contents: write
+  id-token: write
 
 on:
   push:
     tags:
       - 'v[0-9]+.*'
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -23,7 +24,9 @@ jobs:
       - name: Install cargo-dist
         run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/latest/download/cargo-dist-installer.sh | sh
       - id: plan
-        run: cargo dist plan --output-format=json > dist-manifest.json && echo "val=$(cat dist-manifest.json | tr -d '\n')" >> "$GITHUB_OUTPUT"
+        run: |
+          cargo dist plan --output-format=json > dist-manifest.json
+          echo "val=$(cat dist-manifest.json | tr -d '\n')" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts-plan
@@ -69,7 +72,7 @@ jobs:
           path: target/distrib/*
 
   publish:
-    name: Publish Release
+    name: Publish GitHub Release
     needs: [plan, build]
     runs-on: ubuntu-latest
     steps:
@@ -79,10 +82,37 @@ jobs:
           path: artifacts
       - name: Install cargo-dist
         run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/latest/download/cargo-dist-installer.sh | sh
-      - name: Host Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare Release Assets & Checksums
         run: |
           mkdir -p dist-final
           find artifacts -type f -exec cp {} dist-final/ \;
-          gh release upload ${{ github.ref_name }} dist-final/* --clobber || gh release create ${{ github.ref_name }} dist-final/* --title "${{ github.ref_name }}" --generate-notes
+          cd dist-final
+          sha256sum * > SHA256SUMS.txt || true
+          cd ..
+      - name: Create or Update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [ -z "$TAG" ] || [[ "$TAG" == *"main"* ]]; then
+            TAG="v$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)"
+          fi
+          gh release upload "$TAG" dist-final/* --clobber || gh release create "$TAG" dist-final/* --title "$TAG" --generate-notes
+
+  publish-npm:
+    name: Publish NPM Package
+    needs: [publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+      - name: Publish to NPM
+        if: env.NPM_TOKEN != ''
+        working-directory: packages/npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

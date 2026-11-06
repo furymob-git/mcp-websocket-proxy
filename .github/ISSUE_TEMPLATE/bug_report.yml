@@ -1,0 +1,61 @@
+name: Bug Report
+description: Report an issue or unexpected behavior in mcp-websocket-proxy
+title: "fix: <short bug description>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please provide as much detail as possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Exact commands, configuration file, or script used to trigger the issue.
+      placeholder: |
+        1. Run `mcp-websocket-proxy serve --port 8080 -- ...`
+        2. Connect WebSocket client at `ws://127.0.0.1:8080/ws`
+        3. Send JSON-RPC payload: {"jsonrpc": "2.0", "id": 1, ...}
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Stack Traces
+      description: Console output when running with `-v` or `RUST_LOG=debug`.
+      render: shell
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows
+        - Linux (Ubuntu/Debian)
+        - Linux (Alpine / musl)
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Proxy Version
+      description: Output of `mcp-websocket-proxy --version`
+      placeholder: "0.1.0"
+    validations:
+      required: true
