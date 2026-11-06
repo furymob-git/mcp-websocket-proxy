@@ -6,7 +6,7 @@ const https = require('https');
 const { execSync } = require('child_process');
 
 const VERSION = require('../package.json').version;
-const REPO = 'eliot/mcp-websocket-proxy';
+const REPO = 'furymob-git/mcp-websocket-proxy';
 
 function getTargetInfo() {
   const platform = process.platform;

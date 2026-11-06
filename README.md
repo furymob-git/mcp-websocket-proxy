@@ -40,12 +40,12 @@ Choose the installation method that fits your environment.
 
 **Linux & macOS:**
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/eliot/mcp-websocket-proxy/releases/latest/download/mcp-websocket-proxy-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/furymob-git/mcp-websocket-proxy/releases/latest/download/mcp-websocket-proxy-installer.sh | sh
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://github.com/eliot/mcp-websocket-proxy/releases/latest/download/mcp-websocket-proxy-installer.ps1 | iex
+irm https://github.com/furymob-git/mcp-websocket-proxy/releases/latest/download/mcp-websocket-proxy-installer.ps1 | iex
 ```
 
 ### Via Cargo
@@ -68,7 +68,7 @@ npm install -g mcp-websocket-proxy
 
 ### Standalone Pre-compiled Binaries
 
-Pre-compiled standalone binaries for each supported platform (Windows x64/ARM64, Linux x64/musl/ARM64, macOS Apple Silicon & Intel) are published on the [GitHub Releases](https://github.com/eliot/mcp-websocket-proxy/releases) page.
+Pre-compiled standalone binaries for each supported platform (Windows x64/ARM64, Linux x64/musl/ARM64, macOS Apple Silicon & Intel) are published on the [GitHub Releases](https://github.com/furymob-git/mcp-websocket-proxy/releases) page.
 
 ---
 
@@ -220,7 +220,7 @@ See [CONVENTIONS.md](./CONVENTIONS.md) for branch naming standards, conventional
 
 ```bash
 # Clone repository
-git clone https://github.com/eliot/mcp-websocket-proxy.git
+git clone https://github.com/furymob-git/mcp-websocket-proxy.git
 cd mcp-websocket-proxy
 
 # Run test suite

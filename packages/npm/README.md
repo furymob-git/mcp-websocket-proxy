@@ -17,4 +17,4 @@ npm install -g mcp-websocket-proxy
 mcp-websocket-proxy --help
 ```
 
-See the main [documentation repository](https://github.com/eliot/mcp-websocket-proxy) for full usage instructions and multi-server routing.
+See the main [documentation repository](https://github.com/furymob-git/mcp-websocket-proxy) for full usage instructions and multi-server routing.
