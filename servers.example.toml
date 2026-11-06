@@ -1,0 +1,35 @@
+# Multi-server configuration for mcp-websocket-proxy
+
+[host]
+# Listening IP address (default: 127.0.0.1)
+# host = "127.0.0.1"
+
+# Listening port (default: 8080)
+# port = 8080
+
+# Server 1: Local filesystem MCP server for game engines, IDE, or remote clients
+# Endpoint: ws://127.0.0.1:8080/servers/filesystem
+[servers.filesystem]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "./workspace"]
+auto_restart = true
+description = "MCP filesystem server for project workspaces and assets"
+
+# Server 2: Game Engine or Simulation MCP server (Godot, Unity, Unreal)
+# Endpoint: ws://127.0.0.1:8080/servers/engine
+[servers.engine]
+command = "python"
+args = ["-m", "mcp_server_engine"]
+auto_restart = true
+description = "Game engine asset and scene orchestration MCP server"
+[servers.engine.env]
+ENGINE_PORT = "8000"
+ENGINE_ENV = "development"
+
+# Server 3: Database / SQLite MCP server
+# Endpoint: ws://127.0.0.1:8080/servers/db
+[servers.db]
+command = "uvx"
+args = ["mcp-server-sqlite", "--db-path", "./test.db"]
+auto_restart = true
+description = "SQLite database accessible to connected clients"

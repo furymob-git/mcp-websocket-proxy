@@ -1,0 +1,28 @@
+{
+  "name": "mcp-websocket-proxy",
+  "version": "0.1.0",
+  "description": "Ultra-fast, low-RAM Model Context Protocol (MCP) stdio-to-WebSocket proxy and router.",
+  "bin": {
+    "mcp-websocket-proxy": "bin/mcp-websocket-proxy.js"
+  },
+  "scripts": {
+    "postinstall": "node bin/install.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "websocket",
+    "proxy",
+    "game-engine",
+    "jsonrpc"
+  ],
+  "author": "Eliot",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/furymob-git/mcp-websocket-proxy.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
