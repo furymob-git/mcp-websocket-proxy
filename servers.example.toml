@@ -1,0 +1,35 @@
+# Multi-server configuration for mcp-websocket-proxy
+
+[host]
+# Listening IP address (default: 127.0.0.1)
+# host = "127.0.0.1"
+
+# Listening port (default: 8080)
+# port = 8080
+
+# Server 1: Local filesystem MCP server for Roblox Studio, IDE, or remote clients
+# Endpoint: ws://127.0.0.1:8080/servers/filesystem
+[servers.filesystem]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "./workspace"]
+auto_restart = true
+description = "MCP filesystem server for project workspaces and assets"
+
+# Server 2: Dedicated Roblox Studio or Game Engine MCP server
+# Endpoint: ws://127.0.0.1:8080/servers/roblox
+[servers.roblox]
+command = "python"
+args = ["-m", "mcp_server_roblox"]
+auto_restart = true
+description = "Roblox Studio orchestration MCP server"
+[servers.roblox.env]
+ROBLOX_STUDIO_PORT = "8000"
+ROBLOX_ENV = "development"
+
+# Server 3: Database / SQLite MCP server
+# Endpoint: ws://127.0.0.1:8080/servers/db
+[servers.db]
+command = "uvx"
+args = ["mcp-server-sqlite", "--db-path", "./test.db"]
+auto_restart = true
+description = "SQLite database accessible to connected clients"
