@@ -27,7 +27,7 @@ jobs:
         run: |
           cargo dist plan --output-format=json > dist-manifest.json
           echo "val=$(cat dist-manifest.json | tr -d '\n')" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: artifacts-plan
           path: dist-manifest.json
@@ -66,7 +66,7 @@ jobs:
       - name: Build binary with cargo-dist
         shell: bash
         run: cargo dist build --target ${{ matrix.target }} --output-format=json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: artifacts-${{ matrix.target }}
           path: target/distrib/*
