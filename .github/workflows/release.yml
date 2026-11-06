@@ -14,96 +14,106 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  plan:
-    name: Plan Release
-    runs-on: ubuntu-latest
-    outputs:
-      val: ${{ steps.plan.outputs.val }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Install cargo-dist
-        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/latest/download/cargo-dist-installer.sh | sh
-      - id: plan
-        run: |
-          TAG="${{ github.ref_name }}"
-          if [ -z "$TAG" ] || [[ "$TAG" == *"main"* ]]; then
-            TAG="v$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)"
-          fi
-          cargo dist plan --tag="$TAG" --output-format=json > dist-manifest.json
-          echo "val=$(cat dist-manifest.json | tr -d '\n')" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: artifacts-plan
-          path: dist-manifest.json
-
   build:
-    name: Build (${{ matrix.target }})
-    needs: [plan]
+    name: Build (${{ matrix.asset_name }})
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-24.04-arm
-          - target: x86_64-apple-darwin
-            os: macos-13
-          - target: aarch64-apple-darwin
-            os: macos-latest
           - target: x86_64-pc-windows-msvc
             os: windows-latest
+            bin_name: mcp-websocket-proxy.exe
+            asset_name: mcp-websocket-proxy-windows-x64.exe
+            archive_ext: .zip
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            bin_name: mcp-websocket-proxy
+            asset_name: mcp-websocket-proxy-linux-x64
+            archive_ext: .tar.gz
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            bin_name: mcp-websocket-proxy
+            asset_name: mcp-websocket-proxy-linux-musl-x64
+            archive_ext: .tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            bin_name: mcp-websocket-proxy
+            asset_name: mcp-websocket-proxy-macos-arm64
+            archive_ext: .tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-13
+            bin_name: mcp-websocket-proxy
+            asset_name: mcp-websocket-proxy-macos-x64
+            archive_ext: .tar.gz
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Install musl tools (Linux musl only)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
-      - name: Install cargo-dist
-        shell: bash
-        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/latest/download/cargo-dist-installer.sh | sh
-      - name: Build binary with cargo-dist
+
+      - name: Build standalone release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package standalone executable and archive (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist-assets
+          $binPath = "target/${{ matrix.target }}/release/${{ matrix.bin_name }}"
+          Copy-Item $binPath "dist-assets/${{ matrix.asset_name }}"
+          Compress-Archive -Path $binPath -DestinationPath "dist-assets/mcp-websocket-proxy-${{ matrix.target }}.zip"
+
+      - name: Package standalone executable and archive (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
-          TAG="${{ github.ref_name }}"
-          if [ -z "$TAG" ] || [[ "$TAG" == *"main"* ]]; then
-            TAG="v$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)"
-          fi
-          cargo dist build --tag="$TAG" --target ${{ matrix.target }} --output-format=json
-      - uses: actions/upload-artifact@v4
+          mkdir -p dist-assets
+          BIN_PATH="target/${{ matrix.target }}/release/${{ matrix.bin_name }}"
+          cp "$BIN_PATH" "dist-assets/${{ matrix.asset_name }}"
+          chmod +x "dist-assets/${{ matrix.asset_name }}"
+          tar -czf "dist-assets/mcp-websocket-proxy-${{ matrix.target }}.tar.gz" -C "target/${{ matrix.target }}/release" "${{ matrix.bin_name }}"
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: artifacts-${{ matrix.target }}
-          path: target/distrib/*
+          name: assets-${{ matrix.target }}
+          path: dist-assets/*
 
   publish:
     name: Publish GitHub Release
-    needs: [plan, build]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
-      - name: Install cargo-dist
-        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/latest/download/cargo-dist-installer.sh | sh
-      - name: Prepare Release Assets & Checksums
+
+      - name: Prepare Final Release Assets & Checksums
+        shell: bash
         run: |
-          mkdir -p dist-final
-          find artifacts -type f -exec cp {} dist-final/ \;
-          cd dist-final
-          sha256sum * > SHA256SUMS.txt || true
+          mkdir -p release-files
+          find artifacts -type f -exec cp {} release-files/ \;
+          cd release-files
+          sha256sum * > SHA256SUMS.txt
+          ls -la
           cd ..
+
       - name: Create or Update GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -112,7 +122,8 @@ jobs:
           if [ -z "$TAG" ] || [[ "$TAG" == *"main"* ]]; then
             TAG="v$(grep -m 1 '^version = ' Cargo.toml | cut -d '"' -f 2)"
           fi
-          gh release upload "$TAG" dist-final/* --clobber || gh release create "$TAG" dist-final/* --title "$TAG" --generate-notes
+          echo "Publishing release for $TAG"
+          gh release upload "$TAG" release-files/* --clobber || gh release create "$TAG" release-files/* --title "$TAG" --generate-notes
 
   publish-npm:
     name: Publish NPM Package
@@ -120,8 +131,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
